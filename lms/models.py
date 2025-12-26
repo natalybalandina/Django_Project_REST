@@ -2,65 +2,67 @@ from django.db import models
 
 
 class Course(models.Model):
-    """
-    Хранит информацию о курсе.
+    """Описание модели Курса"""
 
-    Связанные модели:
-    - :model:`lms.Lesson` - уроки, входящие в этот курс
-    """
-
-    name = models.CharField(
-        max_length=150, verbose_name="Название курса", help_text="Введите название курса"
+    title = models.CharField(
+        max_length=250, verbose_name="наименование", help_text="Введите название курса", default='Без названия'
     )
-    preview = models.ImageField(upload_to="lms/preview_course", blank=True, null=True)
-    description = models.CharField(
-        max_length=50,
-        verbose_name="Описание курса",
-        help_text="Введите описание курса",
+    description = models.TextField(
+        verbose_name="описание",
         blank=True,
         null=True,
+        help_text="Введите описание курса",
     )
+    image = models.ImageField(
+        verbose_name="изображение",
+        blank=True,
+        null=True,
+        help_text="Загрузите изображение курса",
+        upload_to="uploads/",
+    )
+
+    def __str__(self):
+        return f"{self.title}"
 
     class Meta:
         verbose_name = "Курс"
         verbose_name_plural = "Курсы"
-
-    def __str__(self):
-        return self.name
+        ordering = ["title"]
 
 
 class Lesson(models.Model):
-    """
-    Хранит информацию об уроке, входящие в этот курс.
+    """Описание модели Урока"""
 
-    Связанные модели:
-    - :model:`lms.Course` - курс, в который входит урок
-    """
-
-    name = models.CharField(
-        max_length=50, verbose_name="Название урока", help_text="Введите название урока"
+    title = models.CharField(
+        max_length=250, verbose_name="наименование", help_text="Введите название урока",  default=''
     )
-    preview = models.ImageField(upload_to="lms/preview_lesson", blank=True, null=True)
-    description = models.CharField(
-        max_length=50,
-        verbose_name="Описание урока",
-        help_text="Введите описание урока",
+    description = models.TextField(
+        verbose_name="описание",
         blank=True,
         null=True,
+        help_text="Введите описание курса",
     )
-    video_url = models.CharField(
-        verbose_name="Ссылка на видео",
-        help_text="Введите ссылку на видеоурок",
+    image = models.ImageField(
+        verbose_name="изображение",
         blank=True,
         null=True,
+        help_text="Загрузите изображение курса",
+        upload_to="uploads/",
+    )
+    video = models.CharField(
+        verbose_name="ссылка на видео",
+        blank=True,
+        null=True,
+        help_text="Введите ссылку на видео курса",
     )
     course = models.ForeignKey(
-        Course, on_delete=models.CASCADE, verbose_name="Курс", help_text="Выберите курс"
+        Course, on_delete=models.CASCADE, related_name="course", verbose_name="курс"
     )
+
+    def __str__(self):
+        return f"{self.title}"
 
     class Meta:
         verbose_name = "Урок"
         verbose_name_plural = "Уроки"
-
-    def __str__(self):
-        return f"{self.name} (курс: {self.course.name})"
+        ordering = ["title"]
