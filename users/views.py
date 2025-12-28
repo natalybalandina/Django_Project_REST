@@ -1,14 +1,13 @@
-from rest_framework.generics import ListAPIView, UpdateAPIView
+from rest_framework import viewsets, filters
+from django_filters.rest_framework import DjangoFilterBackend
 
-from users.models import User
-from users.serializers import UserSerializer
-
-
-class UserListApiView(ListAPIView):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
+from users.models import Payment
+from users.serializer import PaymentSerializers
 
 
-class UserUpdateApiView(UpdateAPIView):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
+class PaymentViewSet(viewsets.ModelViewSet):
+    serializer_class = PaymentSerializers
+    queryset = Payment.objects.all()
+    filter_backends = [filters.OrderingFilter, DjangoFilterBackend]  # Добавляем DjangoFilterBackend
+    filterset_fields = ['payment_course', 'payment_lesson', 'payment_method']
+    ordering_fields = ['payment_date']

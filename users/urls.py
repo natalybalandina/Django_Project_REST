@@ -1,11 +1,13 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import PaymentViewSet
 
-from users.apps import UsersConfig
-from users.views import UserListApiView, UserUpdateApiView
+app_name = 'users'
 
-app_name = UsersConfig.name
+router = DefaultRouter()
+
+router.register(r'payments', PaymentViewSet)
 
 urlpatterns = [
-    path("", UserListApiView.as_view(), name="user_list"),
-    path("<int:pk>/update/", UserUpdateApiView.as_view(), name="users_update"),
+    path('', include(router.urls)),  # Включаем маршруты из роутера
 ]
