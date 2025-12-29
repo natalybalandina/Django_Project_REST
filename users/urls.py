@@ -1,13 +1,13 @@
-from django.urls import path
-from users.apps import UsersConfig
-from users.views import UserCreateAPIView, UserListApiView, UserUpdateApiView, UserDetailApiView, UserDeleteApiView
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import PaymentViewSet
 
-app_name = UsersConfig.name
+app_name = 'users'
+
+router = DefaultRouter()
+
+router.register(r'payments', PaymentViewSet)
 
 urlpatterns = [
-    path("", UserListApiView.as_view(), name="user_list"),  # Получение списка пользователей
-    path("<int:pk>/", UserDetailApiView.as_view(), name="user_detail"),  # Получение одной сущности
-    path("create/", UserCreateAPIView.as_view(), name="user_create"),  # Создание нового пользователя
-    path("<int:pk>/update/", UserUpdateApiView.as_view(), name="user_update"),  # Изменение пользователя
-    path("<int:pk>/delete/", UserDeleteApiView.as_view(), name="user_delete"),  # Удаление пользователя
+    path('', include(router.urls)),  # Включаем маршруты из роутера
 ]
