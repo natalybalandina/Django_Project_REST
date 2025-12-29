@@ -56,3 +56,6 @@ class Lesson(models.Model):
     class Meta:
         verbose_name = "Урок"
         verbose_name_plural = "Уроки"
+
+    def __str__(self):
+        return f"{self.name} (курс: {self.course.name})"
