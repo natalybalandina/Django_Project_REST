@@ -1,24 +1,22 @@
-from django.urls import path
-from rest_framework.routers import SimpleRouter
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from rest_framework_simplejwt.views import TokenRefreshView
+from users.views import (
+    UserViewSet,
+    UserRegistrationAPIView,
+    UserProfileAPIView,
+    CustomTokenObtainPairView
+)
 
-from lms.apps import LmsConfig
-from lms.views import (CourseViewSet, LessonCreateAPIView, LessonDestroyAPIView, LessonListAPIView, LessonRetrieveAPIView, LessonUpdateAPIView)
+app_name = 'users'  # Обязательно для namespace
 
-app_name = LmsConfig.name
-
-router = SimpleRouter()
-router.register("", CourseViewSet)
-
+router = DefaultRouter()
+router.register(r'users', UserViewSet, basename='users')
 
 urlpatterns = [
-    path("lesson/", LessonListAPIView.as_view(), name="lesson_list"),
-    path("lesson/<int:pk>/", LessonRetrieveAPIView.as_view(), name="lesson_retrieve"),
-    path("lesson/create/", LessonCreateAPIView.as_view(), name="lesson_create"),
-    path(
-        "lesson/<int:pk>/delete/", LessonDestroyAPIView.as_view(), name="lesson_delete"
-    ),
-    path(
-        "lesson/<int:pk>/update/", LessonUpdateAPIView.as_view(), name="lesson_update"
-    ),
+    path('', include(router.urls)),
+    path('register/', UserRegistrationAPIView.as_view(), name='register'),
+    path('profile/', UserProfileAPIView.as_view(), name='profile'),
+    path('token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]
-urlpatterns += router.urls

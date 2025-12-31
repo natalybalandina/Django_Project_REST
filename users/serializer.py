@@ -1,16 +1,29 @@
-from users.models import Payment, User
 from rest_framework import serializers
+from .models import User
 
 
-class PaymentSerializers(serializers.ModelSerializer):
-    class Meta:
-        model = Payment
-        fields = '__all__'
-
-
-class UserSerializer(serializers.ModelSerializer):
-    payments = PaymentSerializers(many=True, read_only=True)  # Добавляем историю платежей
+class UserCreateSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
 
     class Meta:
         model = User
-        fields = '__all__'  # Включаем поле payments
+        fields = ['id', 'username', 'email', 'password',
+                  'first_name', 'last_name', 'phone']
+
+    def create(self, validated_data):
+        user = User.objects.create_user(**validated_data)
+        return user
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'first_name',
+                  'last_name', 'phone', 'city', 'avatar']
+        read_only_fields = ['username', 'email']
+
+
+class UserPublicSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'first_name', 'city', 'avatar']
