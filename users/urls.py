@@ -9,13 +9,12 @@ from .views import (
 )
 
 router = DefaultRouter()
-router.register(r'users', UserViewSet, basename='users')
+router.register(r'users', UserViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
     path('register/', UserRegistrationAPIView.as_view(), name='register'),
     path('profile/', UserProfileAPIView.as_view(), name='profile'),
-    path('me/', UserViewSet.as_view({'get': 'me', 'put': 'me', 'patch': 'me'}), name='me'),
     path('token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]

@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
 from .serializer import UserCreateSerializer, UserProfileSerializer, UserPublicSerializer
-from rest_framework import viewsets, generics, permissions
+from rest_framework import viewsets, generics, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -28,35 +28,32 @@ class UserViewSet(viewsets.ModelViewSet):
             return [permissions.IsAuthenticated(), IsProfileOwner()]
         return [permissions.IsAuthenticated()]
 
+    def get_queryset(self):
+        # Для модераторов показываем всех пользователей
+        if IsModerator().has_permission(self.request, self):
+            return User.objects.all()
+        # Обычные пользователи не видят список пользователей
+        return User.objects.none()
+
     @action(detail=False, methods=['get', 'put', 'patch'])
     def me(self, request):
-        serializer = UserProfileSerializer(request.user, data=request.data,
-                                           partial=True)
         if request.method in ['PUT', 'PATCH']:
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data)
-            return Response(serializer.errors, status=400)
+            serializer = UserProfileSerializer(request.user, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
+
+        serializer = UserProfileSerializer(request.user)
         return Response(serializer.data)
 
 
-# Добавьте эти классы для совместимости
 class UserRegistrationAPIView(generics.CreateAPIView):
-    """API для регистрации пользователя"""
-    queryset = User.objects.all()
-    serializer_class = UserCreateSerializer
-    permission_classes = [permissions.AllowAny]
-
-
-class UserCreateAPIView(generics.CreateAPIView):
-    """API для создания пользователя (для обратной совместимости)"""
     queryset = User.objects.all()
     serializer_class = UserCreateSerializer
     permission_classes = [permissions.AllowAny]
 
 
 class UserProfileAPIView(generics.RetrieveUpdateAPIView):
-    """API для просмотра и обновления профиля пользователя"""
     serializer_class = UserProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -65,5 +62,4 @@ class UserProfileAPIView(generics.RetrieveUpdateAPIView):
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
-    """Кастомный View для получения JWT токена"""
     permission_classes = [permissions.AllowAny]

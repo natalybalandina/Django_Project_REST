@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.models import ContentType
-from lms.models import Course, Lesson
+from django.apps import apps
 
 
 class Command(BaseCommand):
@@ -10,7 +10,9 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         moder_group, created = Group.objects.get_or_create(name='Модераторы')
 
-        # Добавляем права просмотра и изменения
+        Course = apps.get_model('lms', 'Course')
+        Lesson = apps.get_model('lms', 'Lesson')
+
         content_types = {
             Course: ['view', 'change'],
             Lesson: ['view', 'change']
@@ -26,9 +28,12 @@ class Command(BaseCommand):
                         codename=codename
                     )
                     moder_group.permissions.add(permission)
+                    self.stdout.write(
+                        self.style.SUCCESS(f'Добавлено разрешение: {codename}')
+                    )
                 except Permission.DoesNotExist:
                     self.stdout.write(
-                        self.style.WARNING(f'Permission {codename} not found')
+                        self.style.WARNING(f'Разрешение {codename} не найдено')
                     )
 
         self.stdout.write(
