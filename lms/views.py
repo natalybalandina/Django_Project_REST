@@ -1,21 +1,27 @@
-from lms.models import Course, Lesson, Subscription
-from lms.serializer import CourseSerializer, LessonSerializer, SubscriptionSerializer, CourseWithSubscriptionSerializer
-from users.permissions import IsModerator
+from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, generics, permissions, filters, status
-from django_filters.rest_framework import DjangoFilterBackend
-from lms.permissions import CoursePermissions, LessonPermissions
-from lms.validators import YouTubeURLValidator
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from django.shortcuts import get_object_or_404
-from lms.paginators import LessonPagination, CoursePagination
-from django.contrib.auth import get_user_model
+from rest_framework.decorators import action
+from django_filters.rest_framework import DjangoFilterBackend
 
+from lms.models import Course, Lesson, Subscription, Payment
+from lms.serializer import (
+    CourseSerializer, LessonSerializer, SubscriptionSerializer,
+    CourseWithSubscriptionSerializer, PaymentSerializer, PaymentCreateSerializer
+)
+from lms.permissions import CoursePermissions, LessonPermissions
+from lms.paginators import LessonPagination, CoursePagination
+from lms.services import StripeService
+from users.permissions import IsModerator
 
 User = get_user_model()
 
 
 class CourseViewSet(viewsets.ModelViewSet):
+    """ViewSet для управления курсами"""
+
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
     permission_classes = [permissions.IsAuthenticated, CoursePermissions]
@@ -26,14 +32,7 @@ class CourseViewSet(viewsets.ModelViewSet):
     ordering_fields = ['created_at', 'name']
 
     def get_serializer_class(self):
-        if self.action == 'retrieve':
-            return CourseWithSubscriptionSerializer
-        return CourseSerializer
-
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context.update({'request': self.request})
-        return context
+        return CourseWithSubscriptionSerializer if self.action == 'retrieve' else CourseSerializer
 
     def get_queryset(self):
         user = self.request.user
@@ -44,8 +43,16 @@ class CourseViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
 
+    @action(detail=True, methods=['get'])
+    def subscription_status(self, request, pk=None):
+        course = self.get_object()
+        is_subscribed = course.subscriptions.filter(user=request.user).exists()
+        return Response({'course': course.name, 'is_subscribed': is_subscribed})
+
 
 class LessonViewSet(viewsets.ModelViewSet):
+    """ViewSet для управления уроками"""
+
     queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
     permission_classes = [permissions.IsAuthenticated, LessonPermissions]
@@ -66,17 +73,16 @@ class LessonViewSet(viewsets.ModelViewSet):
 
 
 class SubscriptionAPIView(APIView):
+    """API для управления подписками на курсы"""
+
     permission_classes = [permissions.IsAuthenticated]
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request):
         user = request.user
         course_id = request.data.get('course_id')
 
         if not course_id:
-            return Response(
-                {'error': 'Не указан ID курса'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({'error': 'Не указан ID курса'}, status=status.HTTP_400_BAD_REQUEST)
 
         course = get_object_or_404(Course, id=course_id)
         subscription = Subscription.objects.filter(user=user, course=course)
@@ -88,50 +94,101 @@ class SubscriptionAPIView(APIView):
             Subscription.objects.create(user=user, course=course)
             message = 'Подписка добавлена'
 
-        return Response(
-            {
-                'message': message,
-                'course_id': course_id,
-                'course_name': course.name,
-                'is_subscribed': not subscription.exists()
-            },
-            status=status.HTTP_200_OK
-        )
+        return Response({
+            'message': message,
+            'course_id': course_id,
+            'course_name': course.name,
+            'is_subscribed': not subscription.exists()
+        }, status=status.HTTP_200_OK)
 
-    def get(self, request, *args, **kwargs):
-        user = request.user
-        subscriptions = Subscription.objects.filter(user=user)
+    def get(self, request):
+        subscriptions = Subscription.objects.filter(user=request.user)
         serializer = SubscriptionSerializer(subscriptions, many=True)
         return Response(serializer.data)
 
 
-class CourseCreateAPIView(generics.CreateAPIView):
-    queryset = Course.objects.all()
-    serializer_class = CourseSerializer
+class PaymentViewSet(viewsets.ModelViewSet):
+    """ViewSet для управления платежами"""
+
+    serializer_class = PaymentSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
+    def get_queryset(self):
+        return Payment.objects.filter(user=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        serializer = PaymentCreateSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        payment = serializer.save()
+        return Response(PaymentSerializer(payment).data, status=status.HTTP_201_CREATED)
 
 
-class LessonCreateAPIView(generics.CreateAPIView):
-    queryset = Lesson.objects.all()
-    serializer_class = LessonSerializer
+class PaymentStatusAPIView(APIView):
+    """Проверка статуса платежа"""
+
     permission_classes = [permissions.IsAuthenticated]
 
-    def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
+    def get(self, request):
+        session_id = request.query_params.get('session_id')
+
+        if not session_id:
+            return Response({'error': 'session_id обязателен'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            payment = Payment.objects.get(stripe_session_id=session_id, user=request.user)
+            payment_status, session_status = StripeService.get_session_status(session_id)
+
+            if payment_status == 'paid' and payment.status != 'succeeded':
+                payment.status = 'succeeded'
+                payment.save()
+
+            return Response({
+                'payment_status': payment_status,
+                'session_status': session_status,
+                'payment_id': payment.id,
+                'course_id': payment.course.id if payment.course else None,
+                'amount': payment.amount
+            })
+
+        except Payment.DoesNotExist:
+            return Response({'error': 'Платеж не найден'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-class CourseListAPIView(generics.ListAPIView):
-    queryset = Course.objects.all()
-    serializer_class = CourseSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    pagination_class = CoursePagination
+class PaymentSuccessAPIView(APIView):
+    """Страница успешной оплаты (для редиректа из Stripe)"""
+
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        session_id = request.GET.get('session_id')
+
+        if session_id:
+            try:
+                payment = Payment.objects.get(stripe_session_id=session_id)
+                if payment.status != 'succeeded':
+                    payment_status, _ = StripeService.get_session_status(session_id)
+                    if payment_status == 'paid':
+                        payment.status = 'succeeded'
+                        payment.save()
+
+                return Response({
+                    'message': 'Оплата прошла успешно!',
+                    'payment_id': payment.id,
+                    'course': payment.course.name if payment.course else None,
+                    'amount': payment.amount
+                })
+            except Payment.DoesNotExist:
+                pass
+
+        return Response({'message': 'Оплата прошла успешно!'})
 
 
-class LessonListAPIView(generics.ListAPIView):
-    queryset = Lesson.objects.all()
-    serializer_class = LessonSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    pagination_class = LessonPagination
+class PaymentCancelAPIView(APIView):
+    """Страница отмены оплаты (для редиректа из Stripe)"""
+
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        return Response({'message': 'Оплата отменена. Вы можете попробовать снова.'})

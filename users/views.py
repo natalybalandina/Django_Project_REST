@@ -5,6 +5,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .permissions import IsModerator, IsProfileOwner
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 User = get_user_model()
 
@@ -52,6 +54,18 @@ class UserRegistrationAPIView(generics.CreateAPIView):
     serializer_class = UserCreateSerializer
     permission_classes = [permissions.AllowAny]
 
+    @swagger_auto_schema(
+        operation_description="Регистрация нового пользователя",
+        request_body=UserCreateSerializer,
+        responses={
+            201: UserCreateSerializer,
+            400: 'Неверные данные (email уже существует и т.д.)'
+        }
+    )
+
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
+
 
 class UserProfileAPIView(generics.RetrieveUpdateAPIView):
     serializer_class = UserProfileSerializer
@@ -63,3 +77,32 @@ class UserProfileAPIView(generics.RetrieveUpdateAPIView):
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     permission_classes = [permissions.AllowAny]
+
+    @swagger_auto_schema(
+        operation_description="Получить JWT токен для авторизации",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['email', 'password'],
+            properties={
+                'email': openapi.Schema(type=openapi.TYPE_STRING, description='Email пользователя'),
+                'password': openapi.Schema(type=openapi.TYPE_STRING, description='Пароль', format='password'),
+            }
+        ),
+        responses={
+            200: openapi.Response(
+                description="Токены доступа",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'access': openapi.Schema(type=openapi.TYPE_STRING, description='Access токен'),
+                        'refresh': openapi.Schema(type=openapi.TYPE_STRING, description='Refresh токен'),
+                    }
+                )
+            ),
+            401: 'Неверные учетные данные'
+        }
+    )
+
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
+

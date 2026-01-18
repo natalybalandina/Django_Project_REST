@@ -40,3 +40,4 @@ class LessonPermissions(CoursePermissions):
     Права доступа для уроков (аналогично курсам)
     """
     pass
+

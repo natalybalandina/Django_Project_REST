@@ -1,7 +1,6 @@
 from rest_framework import serializers
-from lms.models import Course, Lesson, Subscription
+from lms.models import Course, Lesson, Subscription, Payment
 from lms.validators import YouTubeURLValidator
-
 
 class SubscriptionSerializer(serializers.ModelSerializer):
     class Meta:
@@ -28,6 +27,7 @@ class CourseSerializer(serializers.ModelSerializer):
         model = Course
         fields = [
             'id', 'name', 'preview', 'description', 'owner',
+            'price',
             'lesson_count', 'lessons', 'is_subscribed',
             'created_at', 'updated_at'
         ]
@@ -70,3 +70,39 @@ class CourseDetailSerializer(CourseSerializer):
         fields = [
             'name', 'preview', 'description', 'lesson_count', 'lessons'
         ]
+
+
+class PaymentSerializer(serializers.ModelSerializer):
+    course_name = serializers.CharField(source='course.name', read_only=True)
+    user_email = serializers.CharField(source='user.email', read_only=True)
+
+    class Meta:
+        model = Payment
+        fields = [
+            'id', 'user', 'user_email', 'course', 'course_name',
+            'amount', 'payment_url', 'status', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['user', 'amount', 'payment_url', 'status']
+
+
+class PaymentCreateSerializer(serializers.Serializer):
+    course_id = serializers.IntegerField()
+
+    def validate_course_id(self, value):
+        try:
+            course = Course.objects.get(id=value)
+            if course.price <= 0:
+                raise serializers.ValidationError("Курс бесплатный, оплата не требуется")
+            return value
+        except Course.DoesNotExist:
+            raise serializers.ValidationError("Курс не найден")
+
+    def create(self, validated_data):
+        request = self.context.get('request')
+        user = request.user
+        course = Course.objects.get(id=validated_data['course_id'])
+
+        from lms.services import StripeService
+
+        payment = StripeService.create_payment_for_course(course, user, request)
+        return payment

@@ -29,3 +29,4 @@ def validate_youtube_url(value):
                 "Допустимы только ссылки на YouTube (youtube.com или youtu.be)"
             )
     return value
+
