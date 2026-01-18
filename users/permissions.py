@@ -1,14 +1,20 @@
 from rest_framework import permissions
 
 class IsModerator(permissions.BasePermission):
-    """Является ли пользователь модератором"""
-
     def has_permission(self, request, view):
-        return request.user.groups.filter(name="moders").exists()
+        return request.user.is_authenticated and \
+               request.user.groups.filter(name='Модераторы').exists()
 
+class IsNotModerator(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and \
+               not request.user.groups.filter(name='Модераторы').exists()
 
 class IsObjectOwner(permissions.BasePermission):
-    """Является ли пользователь владельцем объекта"""
-
     def has_object_permission(self, request, view, obj):
         return obj.owner == request.user
+
+class IsProfileOwner(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        return obj == request.user
+
