@@ -225,4 +225,3 @@ class AuthenticationTests(TestCase):
         response = client.get('/api/lessons/')
         print(f"AUTHENTICATED RESPONSE: {response.status_code}")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-

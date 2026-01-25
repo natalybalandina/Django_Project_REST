@@ -11,4 +11,3 @@ class PaymentAdmin(admin.ModelAdmin):
     list_filter = ('status', 'created_at')
     search_fields = ('user__email', 'course__name', 'stripe_session_id')
     readonly_fields = ('created_at', 'updated_at')
-

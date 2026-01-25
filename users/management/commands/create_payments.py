@@ -51,4 +51,3 @@
 #         #)
 #
 #         #self.stdout.write(self.style.SUCCESS('Successfully created 2 payments'))
-

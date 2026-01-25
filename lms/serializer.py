@@ -20,7 +20,7 @@ class LessonSerializer(serializers.ModelSerializer):
 
 class CourseSerializer(serializers.ModelSerializer):
     lesson_count = serializers.SerializerMethodField()
-    lessons = LessonSerializer(many=True, read_only=True, source="lesson_set")
+    lessons = LessonSerializer(many=True, read_only=True)
     is_subscribed = serializers.SerializerMethodField()
 
     class Meta:
@@ -34,8 +34,7 @@ class CourseSerializer(serializers.ModelSerializer):
         read_only_fields = ['owner', 'is_subscribed']
 
     def get_lesson_count(self, obj):
-        return obj.lesson_set.count()
-
+        return obj.lessons.count()  #
 
     def get_is_subscribed(self, obj):
         user = self.context.get('request').user
@@ -62,14 +61,8 @@ class CourseWithSubscriptionSerializer(CourseSerializer):
 
 class CourseDetailSerializer(CourseSerializer):
     """Сериализатор для детального отображения курса"""
-    lesson_count = serializers.SerializerMethodField()
-    lessons = LessonSerializer(many=True, read_only=True, source="lesson_set")
-
-    class Meta:
-        model = Course
-        fields = [
-            'name', 'preview', 'description', 'lesson_count', 'lessons'
-        ]
+    # Наследуем lesson_count и lessons из CourseSerializer
+    pass
 
 
 class PaymentSerializer(serializers.ModelSerializer):

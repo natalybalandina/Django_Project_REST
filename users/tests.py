@@ -111,4 +111,3 @@ class UserAPITests(TestCase):
         """Тест доступа без аутентификации"""
         response = self.client.get('/api/auth/profile/')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-

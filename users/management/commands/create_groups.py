@@ -39,4 +39,3 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS('Группа модераторов создана и настроена')
         )
-
