@@ -241,50 +241,104 @@ sudo ufw --force enable
 # GitHub Secrets
 Для работы CI/CD необходимо добавить следующие секреты в репозиторий (Settings → Secrets and variables → Actions):
 
-Secret Name	           | Описание
-------------------------------------------
-SERVER_HOST	           | IP сервера (93.77.180.191)
-SERVER_USER	           | Пользователь для деплоя (deployer)
-SERVER_SSH_KEY	       | Приватный SSH-ключ для подключения
-DJANGO_SECRET_KEY	     | Секретный ключ Django
-POSTGRES_DB            |	Имя БД (lms_db)
-POSTGRES_USER	         | Пользователь БД (lms_user)
-POSTGRES_PASSWORD	     | Пароль БД (lms_password)
-POSTGRES_HOST	         | Хост БД (localhost)
-POSTGRES_PORT          |	Порт БД (5432)
-REDIS_HOST	           | Хост Redis (localhost)
-REDIS_PORT             |	Порт Redis (6379)
-STRIPE_SECRET_KEY	     | Секретный ключ Stripe
-STRIPE_PUBLISHABLE_KEY |	Публичный ключ Stripe
-------------------------------------------------
+| Secret Name	           |  Описание|
+|:---------------------:|:--------------------:|
+| SERVER_HOST	           | IP сервера (93.77.180.191)|
+| SERVER_USER	           | Пользователь для деплоя (deployer)|
+| SERVER_SSH_KEY	       | Приватный SSH-ключ для подключения|
+| DJANGO_SECRET_KEY	     | Секретный ключ Django|
+| POSTGRES_DB            |	Имя БД (lms_db)|
+| POSTGRES_USER	         | Пользователь БД (lms_user)|
+| POSTGRES_PASSWORD	     | Пароль БД (lms_password)|
+| POSTGRES_HOST	         | Хост БД (localhost)|
+| POSTGRES_PORT          |	Порт БД (5432)|
+| REDIS_HOST	           | Хост Redis (localhost)|
+| REDIS_PORT             |	Порт Redis (6379)|
+| STRIPE_SECRET_KEY	     | Секретный ключ Stripe|
+| STRIPE_PUBLISHABLE_KEY |	Публичный ключ Stripe|
+| :--------------------: |:--------------------------:|
 
-
-Мониторинг
-Статус сервисов:
+# Настройка SSH-ключа для GitHub Actions
+## На локальном компьютере:
 ```
+ssh-keygen -t ed25519 -C "github-actions" -f ~/.ssh/github-actions-key
+cat ~/.ssh/github-actions-key.pub
+```
+
+## На сервере:
+```
+echo "ssh-ed25519 AAAAC3..." >> /home/deployer/.ssh/authorized_keys
+Приватный ключ (~/.ssh/github-actions-key) добавьте в SERVER_SSH_KEY.
+```
+
+# Полезные команды
+## Docker
+```
+# Мониторинг статуса
 docker-compose ps
-```
 
-### Остановить и удалить контейнеры
+# Логи
+docker-compose logs -f
 
-```
+# Остановить и удалить контейнеры
 docker-compose down -v
-```
 
-### Очистить неиспользуемые образы
-```
+# Очистить неиспользуемые образы
 docker system prune -a
 ```
 
-# ВЫВОД
-Файл 'docker-compose.yaml' полностью покрывает все требования задания:
+## На сервере
+```
+# Статус сервисов
+sudo systemctl status gunicorn
+sudo systemctl status nginx
+sudo systemctl status postgresql
+sudo systemctl status redis-server
 
-- Все сервисы описаны (PostgreSQL, Redis, Django, Celery, и др.)
+# Логи
+sudo journalctl -u gunicorn -f
+sudo tail -f /var/log/nginx/error.log
+tail -f ~/lms_project/logs/gunicorn_error.log
 
-- Правильные порты и зависимости
+# Перезапуск
+sudo systemctl restart gunicorn
+sudo systemctl reload nginx
+```
 
+## Django
+```
+# Запуск тестов
+python manage.py test
+
+# Создание миграций
+python manage.py makemigrations
+
+# Применение миграций
+python manage.py migrate
+
+# Создание суперпользователя
+python manage.py createsuperuser
+
+# Запуск development сервера
+python manage.py runserver
+```
+
+# Статус выполнения задания 35.2
+ - Сервер настроен, сайт доступен по IP
+ - Установлены PostgreSQL, Redis, Nginx, Gunicorn
+- Настроен systemd сервис для Gunicorn
+- Настроен UFW (фаервол)
+- Создан GitHub Actions workflow
+- Настроены Secrets в GitHub
+- Автоматический деплой работает
+- Создан Pull Request в develop
+- Добавлен README с инструкциями
+- Выполнено дополнительное задание с Docker
+- Все сервисы описаны в docker-compose.yaml
+- Настроены healthcheck для сервисов
 - Используются переменные окружения из .env
 
-- Есть 'healthcheck' для сервисов
-
-- Все настроено для работы в единой сети
+# Автор
+Natalya Balandina
+GitHub: @natalybalandina
+Email: bal1nataly@gmail.com
