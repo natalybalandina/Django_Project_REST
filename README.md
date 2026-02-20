@@ -337,8 +337,3 @@ python manage.py runserver
 - Все сервисы описаны в docker-compose.yaml
 - Настроены healthcheck для сервисов
 - Используются переменные окружения из .env
-
-# Автор
-Natalya Balandina
-GitHub: @natalybalandina
-Email: bal1nataly@gmail.com
