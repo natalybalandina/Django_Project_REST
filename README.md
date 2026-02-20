@@ -241,20 +241,20 @@ sudo ufw --force enable
 # GitHub Secrets
 Для работы CI/CD необходимо добавить следующие секреты в репозиторий (Settings → Secrets and variables → Actions):
 
-Secret Name	| Описание
+Secret Name	           | Описание
 ------------------------------------------
-SERVER_HOST	| IP сервера (93.77.180.191)
-SERVER_USER	| Пользователь для деплоя (deployer)
-SERVER_SSH_KEY	| Приватный SSH-ключ для подключения
-DJANGO_SECRET_KEY	| Секретный ключ Django
-POSTGRES_DB |	Имя БД (lms_db)
-POSTGRES_USER	| Пользователь БД (lms_user)
-POSTGRES_PASSWORD	| Пароль БД (lms_password)
-POSTGRES_HOST	| Хост БД (localhost)
-POSTGRES_PORT |	Порт БД (5432)
-REDIS_HOST	| Хост Redis (localhost)
-REDIS_PORT |	Порт Redis (6379)
-STRIPE_SECRET_KEY	| Секретный ключ Stripe
+SERVER_HOST	           | IP сервера (93.77.180.191)
+SERVER_USER	           | Пользователь для деплоя (deployer)
+SERVER_SSH_KEY	       | Приватный SSH-ключ для подключения
+DJANGO_SECRET_KEY	     | Секретный ключ Django
+POSTGRES_DB            |	Имя БД (lms_db)
+POSTGRES_USER	         | Пользователь БД (lms_user)
+POSTGRES_PASSWORD	     | Пароль БД (lms_password)
+POSTGRES_HOST	         | Хост БД (localhost)
+POSTGRES_PORT          |	Порт БД (5432)
+REDIS_HOST	           | Хост Redis (localhost)
+REDIS_PORT             |	Порт Redis (6379)
+STRIPE_SECRET_KEY	     | Секретный ключ Stripe
 STRIPE_PUBLISHABLE_KEY |	Публичный ключ Stripe
 ------------------------------------------------
 
